@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"reflect"
 	"testing"
 )
 
@@ -13,6 +14,14 @@ type CustomError struct {
 }
 
 func (e *CustomError) Error() string {
+	return e.s
+}
+
+type CustomError2 struct {
+	s string
+}
+
+func (e *CustomError2) Error() string {
 	return e.s
 }
 
@@ -196,4 +205,33 @@ func TestErrorRead(t *testing.T) {
 	post(nil)
 
 	Wait()
+}
+
+func TestFingerprint(t *testing.T) {
+	stack1 := Stack{Frame{"foo.go", "Oops", 1}}
+	stack2 := Stack{Frame{"bar.go", "Womp", 2}}
+
+	customErrorInstance := &CustomError{"foo"}
+	customErrorInstance2 := &CustomError{"bar"}
+
+	// fingerprint should be the same for same error class, same stack
+	assertEqual(t,
+		fingerprint(stack1, customErrorInstance),
+		fingerprint(stack1, customErrorInstance2))
+	// but different for same error class, different stack
+	assertNotEqual(t,
+		fingerprint(stack1, customErrorInstance),
+		fingerprint(stack2, customErrorInstance2))
+}
+
+func assertEqual(t *testing.T, got, want interface{}) {
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("expected %s, wanted %s", got, want)
+	}
+}
+
+func assertNotEqual(t *testing.T, got, want interface{}) {
+	if reflect.DeepEqual(got, want) {
+		t.Errorf("expected %s, wanted %s", got, want)
+	}
 }
